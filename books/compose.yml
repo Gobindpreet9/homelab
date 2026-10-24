@@ -1,0 +1,104 @@
+name: ebooks
+services:
+  cwa:
+    image: crocodilestick/calibre-web-automated:v4.0.8@sha256:5e00373854247750cc3e4479b492ae09293ff5e06ed10177f226634d97888679
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Etc/UTC
+      NETWORK_SHARE_MODE: "true"
+    ports:
+      - "127.0.0.1:8083:8083"
+    volumes:
+      - type: bind
+        source: ./config/cwa
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/media/Books/Ingest
+        target: /cwa-book-ingest
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/media/Books/Library
+        target: /calibre-library
+        bind:
+          create_host_path: false
+    restart: "no"
+    networks:
+      - default
+  shelfmark:
+    image: ghcr.io/calibrain/shelfmark-lite:v1.4.0@sha256:edc889c12c4e54076432e5377b674fed4a1aaa934890f8a678bc5b38e5088a75
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Etc/UTC
+      AUTH_METHOD: "cwa"
+      CWA_DB_PATH: "/auth/app.db"
+      SHELFMARK_API_KEY: "${SHELFMARK_API_KEY:?Required automation API key}"
+      BOOKS_OUTPUT_MODE: "folder"
+      INGEST_DIR: "/books"
+      HARDLINK_TORRENTS: "false"
+      HARDLINK_TORRENTS_AUDIOBOOK: "false"
+      PROWLARR_TORRENT_ACTION: "keep"
+      CALIBRE_WEB_URL: "http://127.0.0.1:8083"
+      SEARCH_MODE: "universal"
+      METADATA_PROVIDER: "openlibrary"
+      OPENLIBRARY_ENABLED: "true"
+      BOOK_LANGUAGE: "en"
+      SUPPORTED_FORMATS: "epub"
+      PROWLARR_ENABLED: "true"
+      PROWLARR_URL: "http://prowlarr:9696"
+      PROWLARR_INDEXERS: "${PROWLARR_INDEXERS:?Select authorized ebook indexers}"
+      PROWLARR_AUTO_EXPAND: "false"
+      PROWLARR_TORRENT_CLIENT: "qbittorrent"
+      QBITTORRENT_URL: "http://qbittorrent:18080"
+      QBITTORRENT_CATEGORY: "books"
+      QBITTORRENT_DOWNLOAD_DIR: "/downloads/books"
+      PROWLARR_API_KEY: "${PROWLARR_API_KEY:?Required API key}"
+      QBITTORRENT_API_KEY: "${QBITTORRENT_API_KEY:?Required API key}"
+      DIRECT_DOWNLOAD_ENABLED: "false"
+      LIBGEN_SEARCH_ENABLED: "false"
+      NEWZNAB_ENABLED: "false"
+      ABB_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8084:8084"
+    volumes:
+      - type: bind
+        source: ./config/cwa/app.db
+        target: /auth/app.db
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./config/shelfmark
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/media/Books/Ingest
+        target: /books
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /srv/media/Downloads
+        target: /downloads
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8084/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: "no"
+    networks:
+      - default
+      - media
+networks:
+  default: {}
+  media:
+    external: true
+    name: homelab_media

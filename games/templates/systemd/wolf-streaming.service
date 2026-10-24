@@ -1,0 +1,21 @@
+[Unit]
+# Explicit operator-created trust gate; never supplied by this export.
+ConditionPathExists=/etc/wolf-streaming/REVIEWED
+Description=Independent Wolf game streaming
+Requires=docker.service wolf-streaming-firewall.service wolf-session-guard.service
+After=docker.service network-online.target wolf-streaming-firewall.service wolf-session-guard.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/wolf-streaming
+ExecStartPre=/usr/bin/docker compose -f /etc/wolf-streaming/compose.yml config -q
+ExecStart=/usr/bin/docker compose -f /etc/wolf-streaming/compose.yml up --no-build --pull never --abort-on-container-exit
+ExecStop=/usr/bin/docker compose -f /etc/wolf-streaming/compose.yml down --timeout 25
+TimeoutStartSec=120
+TimeoutStopSec=75
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

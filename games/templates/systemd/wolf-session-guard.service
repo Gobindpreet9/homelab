@@ -1,0 +1,47 @@
+[Unit]
+Description=Wolf per-game session save boundary broker (reviewed template)
+# Explicit operator-created trust gate; never supplied by this export.
+ConditionPathExists=/etc/wolf-streaming/REVIEWED
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+# System service defaults to root; broker asserts UID 0, worker drops to 1000.
+# Keep code and every ancestor root-owned and not writable by untrusted users.
+ExecStart=/usr/bin/python3 -I /usr/local/lib/wolf-streaming/session_guard.py
+WorkingDirectory=/
+RuntimeDirectory=wolf-streaming
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+UMask=0077
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_CHOWN
+RestrictAddressFamilies=AF_UNIX
+ProtectSystem=strict
+ProtectHome=read-only
+# Create these narrow directories with reviewed ownership before use.
+ReadWritePaths=/srv/homelab/games/locks
+ReadWritePaths=/srv/homelab/games/sync-state
+ReadWritePaths=/srv/homelab/games/local-prefixes/example-game/drive_c/save-data
+ReadWritePaths=/srv/homelab/games/local-prefixes/second-game/drive_c/save-data
+ReadWritePaths=/srv/homelab/games/prefixes/example-game/drive_c/save-data
+ReadWritePaths=/srv/homelab/games/prefixes/second-game/drive_c/save-data
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Broker EOF leaves workers holding locks; never kill them automatically.
+KillMode=process
+SendSIGKILL=no
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

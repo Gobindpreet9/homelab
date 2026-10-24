@@ -1,0 +1,21 @@
+# REVIEW ONLY: never load automatically; reconcile with your existing firewall.
+# Replace both placeholders; this template is intentionally invalid until edited.
+# Requires nft support for "destroy table"; affects only this named table.
+define lan_interface = "CHANGE_ME_LAN_INTERFACE"
+define lan_subnet = REPLACE_WITH_LAN_CIDR
+
+destroy table inet wolf_streaming
+
+table inet wolf_streaming {
+    chain permitted_client {
+        iifname "lo" accept
+        iifname $lan_interface ip saddr $lan_subnet accept
+        # No implicit IPv6 allowance, VPN or WAN allowance.
+        counter drop
+    }
+    chain input {
+        type filter hook input priority -20; policy accept;
+        tcp dport { 47984, 47989, 48010 } jump permitted_client
+        udp dport { 47999, 48100, 48200 } jump permitted_client
+    }
+}

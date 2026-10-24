@@ -1,0 +1,19 @@
+[Unit]
+Description=Mount-aware ebook pipeline
+Requires=docker.service
+After=docker.service srv-media.mount
+RequiresMountsFor=/srv/media/Books
+BindsTo=srv-media.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/homelab/books
+ExecStart=/usr/bin/python3 /etc/ebooks/ebookctl.py up
+ExecStop=/usr/bin/python3 /etc/ebooks/ebookctl.py down
+ExecStopPost=/usr/bin/python3 /etc/ebooks/ebookctl.py down
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

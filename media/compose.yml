@@ -1,0 +1,130 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin@sha256:baba630419915985442f315f08b0cf46d9f4c8a0cc4bd38e94a6d35751dd5ef5
+    user: ${PUID:-1000}:${PGID:-1000}
+    ports:
+    - ${LISTEN_ADDRESS:-127.0.0.1}:8096:8096
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    volumes:
+    - ./config/jellyfin:/config
+    - ./cache:/cache
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Movies:/media/movies:rw
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Series:/media/shows:rw
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities:
+            - gpu
+    restart: unless-stopped
+    networks:
+    - media
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent@sha256:8d48fa8c619caadfb103f04efea8747e2a2762d6c7551690919cffb987e61cee
+    ports:
+    - 127.0.0.1:18080:18080
+    - ${TORRENT_BIND_ADDRESS:-127.0.0.1}:6881:6881
+    - ${TORRENT_BIND_ADDRESS:-127.0.0.1}:6881:6881/udp
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    - UMASK=022
+    - WEBUI_PORT=18080
+    - TORRENTING_PORT=6881
+    volumes:
+    - ./config/qbittorrent:/config
+    - ${DOWNLOAD_ROOT:?set DOWNLOAD_ROOT}:/downloads
+    restart: unless-stopped
+    networks:
+    - media
+  radarr:
+    image: lscr.io/linuxserver/radarr@sha256:95ba0801df4d9d1d79d0d9a3849f656542497dab061d91b87ad4f53a71aff3ef
+    ports:
+    - 127.0.0.1:7878:7878
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    volumes:
+    - ./config/radarr:/config
+    - ${DOWNLOAD_ROOT:?set DOWNLOAD_ROOT}:/downloads:rw
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Movies:/media/movies:rw
+    depends_on:
+    - qbittorrent
+    - prowlarr
+    restart: unless-stopped
+    networks:
+    - media
+  sonarr:
+    image: lscr.io/linuxserver/sonarr@sha256:4d9df314875e1249ab7d6170c2b9b3dc1d8e6383f168ceb10dc9a5ad9b324739
+    ports:
+    - 127.0.0.1:8989:8989
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    volumes:
+    - ./config/sonarr:/config
+    - ${DOWNLOAD_ROOT:?set DOWNLOAD_ROOT}:/downloads:rw
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Series:/media/shows:rw
+    depends_on:
+    - qbittorrent
+    - prowlarr
+    restart: unless-stopped
+    networks:
+    - media
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr@sha256:c7502a75b021d964481c129c84590b9cbc40f83aadd4e553f173871bc0deaa3c
+    ports:
+    - 127.0.0.1:9696:9696
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    volumes:
+    - ./config/prowlarr:/config
+    restart: unless-stopped
+    networks:
+    - media
+  jellyseerr:
+    image: fallenbagel/jellyseerr@sha256:4538137bc5af902dece165f2bf73776d9cf4eafb6dd714670724af8f3eb77764
+    ports:
+    - ${LISTEN_ADDRESS:-127.0.0.1}:5055:5055
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    volumes:
+    - ./config/jellyseerr:/app/config
+    depends_on:
+    - jellyfin
+    - radarr
+    - sonarr
+    restart: unless-stopped
+    networks:
+    - media
+  bazarr:
+    image: lscr.io/linuxserver/bazarr@sha256:84b6f05a7a4194fafe5a0bec062d32f6ae9ea74db33d43d678cb9a3191f31c24
+    ports:
+    - 127.0.0.1:6767:6767
+    environment:
+    - TZ=${TZ:-Etc/UTC}
+    - PUID=${PUID:-1000}
+    - PGID=${PGID:-1000}
+    volumes:
+    - ./config/bazarr:/config
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Movies:/media/movies:rw
+    - ${MEDIA_ROOT:?set MEDIA_ROOT}/Series:/media/shows:rw
+    depends_on:
+    - radarr
+    - sonarr
+    restart: unless-stopped
+    networks:
+    - media
+networks:
+  media:
+    driver: bridge
+    name: homelab_media
+name: homelab-media

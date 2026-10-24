@@ -1,0 +1,49 @@
+# SOURCE-ONLY TEMPLATE: root trust review required; do not run automatically.
+# No Wolf config, app definitions, credentials or game data are supplied.
+# "all" is generic NVIDIA selection; choose your own GPU/render node if needed.
+name: wolf-streaming
+services:
+  wolf:
+    image: ghcr.io/games-on-whales/wolf@sha256:7d6b68e851f744e2f81141587233390ef301632dcb6ae806aa53cb30a7de10fa
+    container_name: wolf-streaming
+    restart: 'no'
+    network_mode: host
+    runtime: nvidia
+    stop_grace_period: 20s
+    environment:
+      XDG_RUNTIME_DIR: /srv/homelab/games/runtime
+      WOLF_SOCKET_PATH: /run/wolf-management/wolf.sock
+      WOLF_RENDER_NODE: /dev/dri/renderD128
+      WOLF_ENCODER_NODE: /dev/dri/renderD128
+      GBM_BACKENDS_PATH: /usr/lib/gbm
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      WOLF_STOP_CONTAINER_ON_EXIT: 'TRUE'
+      WOLF_LOG_LEVEL: INFO
+    volumes:
+    - /srv/homelab/games/wolf-config:/etc/wolf:rw
+    - /srv/homelab/games/runtime:/srv/homelab/games/runtime:rw
+    - /srv/homelab/games/management:/run/wolf-management:rw
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+    - /dev:/dev:rw
+    - /run/udev:/run/udev:rw
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/uinput:/dev/uinput
+    - /dev/uhid:/dev/uhid
+    device_cgroup_rules:
+    - c 13:* rwm
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities:
+            - gpu
+    pids_limit: 1024
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

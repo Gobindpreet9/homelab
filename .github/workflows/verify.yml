@@ -1,0 +1,32 @@
+name: Verify source export
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Publication guard and regression tests
+        run: |
+          python3 -m unittest discover -s tools -p 'test_*.py'
+          python3 tools/check_public_tree.py
+      - name: Book controller and bootstrap tests
+        run: python3 -m unittest discover -s books/tests -p 'test_*.py'
+      - name: Game save tests
+        run: python3 -m unittest discover -s games/save-sync -p 'test_*.py'
+      - name: Broker tests under fixed UID-1000 trust fixture
+        # Only the disposable test copy is owned by UID 1000. Never weaken
+        # the production SO_PEERCRED check to accommodate the runner UID.
+        run: |
+          sudo install -d -m 0755 /srv/homelab-ci
+          sudo cp -R games /srv/homelab-ci/games
+          sudo chown -R 1000:1000 /srv/homelab-ci/games
+          sudo -u '#1000' -g '#1000' /usr/bin/python3 -B -m unittest discover -s /srv/homelab-ci/games/session-guard -p 'test_*.py'
+      - name: Media Compose validation (no deployment)
+        run: docker compose --project-directory media --env-file media/.env.example config --quiet

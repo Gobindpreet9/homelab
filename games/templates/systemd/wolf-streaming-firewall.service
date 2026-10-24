@@ -1,0 +1,15 @@
+[Unit]
+# Explicit operator-created trust gate; never supplied by this export.
+ConditionPathExists=/etc/wolf-streaming/REVIEWED
+Description=LAN-only filtering for Wolf streaming ports
+Before=wolf-streaming.service
+After=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nft -f /etc/wolf-streaming/lan-filter.nft
+ExecStop=/usr/bin/nft delete table inet wolf_streaming
+
+[Install]
+WantedBy=multi-user.target

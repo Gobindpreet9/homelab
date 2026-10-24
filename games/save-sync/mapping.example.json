@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "state_dir": "/srv/homelab/games/sync-state",
+  "games": {
+    "example-game": {
+      "local": "/srv/homelab/games/local-prefixes/example-game/drive_c/save-data",
+      "remote": "/srv/homelab/games/prefixes/example-game/drive_c/save-data",
+      "include": [
+        "*.sav",
+        "slots/*"
+      ],
+      "exclude": [
+        "*.log",
+        "settings/*"
+      ],
+      "conflict_policy": "abort"
+    },
+    "second-game": {
+      "local": "/srv/homelab/games/local-prefixes/second-game/drive_c/save-data",
+      "remote": "/srv/homelab/games/prefixes/second-game/drive_c/save-data",
+      "include": [
+        "*.sav",
+        "slots/*"
+      ],
+      "exclude": [
+        "*.log",
+        "settings/*"
+      ],
+      "conflict_policy": "abort"
+    }
+  }
+}
